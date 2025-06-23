@@ -1,0 +1,91 @@
+version: '3.8'
+
+services:
+  # プライマリサーバー
+  postgres-primary:
+    image: postgres:14
+    container_name: postgres-primary
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-testdb}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      POSTGRES_REPLICATION_USER: ${POSTGRES_REPLICATION_USER:-replicator}
+      POSTGRES_REPLICATION_PASSWORD: ${POSTGRES_REPLICATION_PASSWORD:-repl_password}
+    ports:
+      - "5432:5432"
+    volumes:
+      - primary_data:/var/lib/postgresql/data
+      - ./primary/postgresql.conf:/etc/postgresql/postgresql.conf
+      - ./primary/pg_hba.conf:/etc/postgresql/pg_hba.conf
+      - ./scripts/setup-primary.sh:/docker-entrypoint-initdb.d/setup-primary.sh
+    command: >
+      postgres 
+      -c config_file=/etc/postgresql/postgresql.conf
+      -c hba_file=/etc/postgresql/pg_hba.conf
+    networks:
+      - postgres-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d testdb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # スタンバイサーバー
+  postgres-standby:
+    image: postgres:14
+    container_name: postgres-standby
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-testdb}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      POSTGRES_REPLICATION_USER: ${POSTGRES_REPLICATION_USER:-replicator}
+      POSTGRES_REPLICATION_PASSWORD: ${POSTGRES_REPLICATION_PASSWORD:-repl_password}
+      PGUSER: ${POSTGRES_USER:-postgres}
+    ports:
+      - "5433:5432"
+    volumes:
+      - standby_data:/var/lib/postgresql/data
+      - ./standby/postgresql.conf:/etc/postgresql/postgresql.conf
+      - ./standby/pg_hba.conf:/etc/postgresql/pg_hba.conf
+      - ./scripts/setup-standby.sh:/docker-entrypoint-initdb.d/setup-standby.sh
+    command: |
+      bash -c "
+      if [ ! -f /var/lib/postgresql/data/PG_VERSION ]; then
+        echo 'Initializing standby from primary...'
+        gosu postgres bash -c 'PGPASSWORD=${POSTGRES_REPLICATION_PASSWORD:-repl_password} pg_basebackup -h postgres-primary -D /var/lib/postgresql/data -U ${POSTGRES_REPLICATION_USER:-replicator} -R -W -X stream'
+      fi
+      exec gosu postgres postgres -c config_file=/etc/postgresql/postgresql.conf -c hba_file=/etc/postgresql/pg_hba.conf
+      "
+    depends_on:
+      postgres-primary:
+        condition: service_healthy
+    networks:
+      - postgres-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d testdb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # 管理用PgAdmin
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-admin@example.com}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-admin}
+    ports:
+      - "8080:80"
+    networks:
+      - postgres-net
+    depends_on:
+      - postgres-primary
+      - postgres-standby
+
+volumes:
+  primary_data:
+  standby_data:
+
+networks:
+  postgres-net:
+    driver: bridge
