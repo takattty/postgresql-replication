@@ -26,11 +26,28 @@ jobs:
         # Docker Compose環境を起動
         docker compose up -d postgres-primary postgres-standby
         
+        # ログ確認
+        echo "=== Docker Compose Status ==="
+        docker compose ps
+        
+        echo "=== Primary Logs ==="
+        docker compose logs postgres-primary | tail -20
+        
+        echo "=== Standby Logs ==="
+        docker compose logs postgres-standby | tail -20
+        
         # サービスが完全に起動するまで待機
+        echo "=== Waiting for services to be ready ==="
         sleep 30
         
         # ヘルスチェック
+        echo "=== Final Status Check ==="
         docker compose ps
+        
+        # ポートテスト
+        echo "=== Port Test ==="
+        nc -zv localhost 5432 || echo "Port 5432 not accessible"
+        nc -zv localhost 5433 || echo "Port 5433 not accessible"
     
     - name: Set up Go
       uses: actions/setup-go@v5
@@ -63,6 +80,11 @@ jobs:
         POSTGRES_PASSWORD: password
         POSTGRES_REPLICATION_USER: replicator
         POSTGRES_REPLICATION_PASSWORD: repl_password
+        # CI環境ではlocalhostを使用
+        POSTGRES_PRIMARY_HOST: localhost
+        POSTGRES_PRIMARY_PORT: 5432
+        POSTGRES_STANDBY_HOST: localhost
+        POSTGRES_STANDBY_PORT: 5433
     
     - name: Run go vet
       run: |
