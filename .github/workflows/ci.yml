@@ -9,42 +9,28 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    
-    services:
-      postgres-primary:
-        image: postgres:14
-        env:
-          POSTGRES_DB: testdb
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: password
-          POSTGRES_REPLICATION_USER: replicator
-          POSTGRES_REPLICATION_PASSWORD: repl_password
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-      
-      postgres-standby:
-        image: postgres:14
-        env:
-          POSTGRES_DB: testdb
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: password
-          POSTGRES_REPLICATION_USER: replicator
-          POSTGRES_REPLICATION_PASSWORD: repl_password
-        ports:
-          - 5433:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
 
     steps:
     - uses: actions/checkout@v4
+    
+    - name: Set up Docker Compose
+      run: |
+        # version警告を削除
+        sed -i '1d' docker-compose.yml
+    
+    - name: Start PostgreSQL replication environment
+      run: |
+        # .envファイルを作成
+        cp .env.example .env
+        
+        # Docker Compose環境を起動
+        docker compose up -d postgres-primary postgres-standby
+        
+        # サービスが完全に起動するまで待機
+        sleep 30
+        
+        # ヘルスチェック
+        docker compose ps
     
     - name: Set up Go
       uses: actions/setup-go@v5
@@ -67,32 +53,7 @@ jobs:
         go mod download
         go mod verify
     
-    - name: Setup PostgreSQL for replication
-      run: |
-        # Wait for PostgreSQL to be ready
-        sleep 10
-        
-        # プライマリサーバーの設定
-        PGPASSWORD=password psql -h localhost -p 5432 -U postgres -d testdb -c "
-          CREATE USER replicator WITH REPLICATION ENCRYPTED PASSWORD 'repl_password';
-          CREATE TABLE IF NOT EXISTS test_replication (
-            id SERIAL PRIMARY KEY,
-            data TEXT NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-          );
-          INSERT INTO test_replication (data) VALUES ('Initial test data');
-        "
-        
-        # スタンバイサーバーの設定
-        PGPASSWORD=password psql -h localhost -p 5433 -U postgres -d testdb -c "
-          CREATE TABLE IF NOT EXISTS test_replication (
-            id SERIAL PRIMARY KEY,
-            data TEXT NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-          );
-        "
-    
-    - name: Run tests
+    - name: Run tests with Docker environment
       run: |
         cd app
         go test -v -race -coverprofile=coverage.out ./...
@@ -120,6 +81,10 @@ jobs:
         flags: unittests
         name: codecov-umbrella
         fail_ci_if_error: false
+    
+    - name: Cleanup
+      if: always()
+      run: docker compose down
 
   lint:
     runs-on: ubuntu-latest
