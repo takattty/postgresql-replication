@@ -51,9 +51,29 @@ pgAdmin will be available on <http://localhost:8080> (credentials are defined in
 
 ## Go demo application
 
-Inside `app/` you will find a simple program that writes data to the primary server using `docker exec` and reads from the standby using a direct connection. The code also includes a test suite.
+Inside `app/` you will find a simple program that writes data to the primary server using `docker exec` and reads from the standby using a direct connection. The code also includes a comprehensive test suite.
 
-### Using Make (Recommended)
+### 🐳 Docker Development (Recommended)
+
+**Complete development environment with PostgreSQL replication:**
+
+```bash
+# Start complete development environment
+make docker-dev          # Starts Go + PostgreSQL replication
+
+# Run comprehensive tests (6 test cases)
+make docker-test         # ✅ All replication tests
+
+# Code quality checks
+make docker-lint         # golangci-lint static analysis
+make docker-security     # gosec security scanning
+make docker-ci           # Complete CI pipeline
+
+# Interactive development
+make docker-shell        # Open shell in Go container
+```
+
+### 🔧 Local Development
 
 ```bash
 # Setup development environment
@@ -70,7 +90,7 @@ make run-connection-check
 make run-simple-demo
 make run-replication-demo
 
-# See all available commands
+# See all available commands (40+)
 make help
 ```
 
@@ -81,6 +101,15 @@ cd app
 go mod tidy
 go test -v
 ```
+
+### 📊 Test Results
+
+The comprehensive test suite validates:
+- **Database Connectivity**: Primary/Standby connection health
+- **Replication Functionality**: Data synchronization verification  
+- **Performance Metrics**: Read/write operation timing
+- **Data Consistency**: Multi-write synchronization validation
+- **Lag Monitoring**: Replication delay measurement
 
 ## Security notes
 
@@ -100,10 +129,15 @@ This project includes automated code quality checks:
 ### CI/CD
 
 The project uses GitHub Actions for:
-- Running tests on multiple Go versions
-- Code quality checks (linting, security scanning)
-- Coverage reporting via Codecov
-- Build verification
+- **Automated Quality Checks**: golangci-lint static analysis
+- **Security Scanning**: gosec vulnerability detection  
+- **Build Verification**: Multi-command compilation testing
+- **Docker Integration**: Container-based development workflow
+
+**Local CI Simulation:**
+```bash
+make docker-ci    # Run complete CI pipeline locally
+```
 
 ### Project Structure
 
@@ -112,12 +146,36 @@ The project uses GitHub Actions for:
 ├── .github/workflows/    # GitHub Actions CI/CD
 ├── app/                  # Go application
 │   ├── cmd/             # Command-line applications
-│   ├── .golangci.yml    # Linter configuration
-│   └── replication_test.go
+│   │   ├── connection_check/  # Database connectivity tool
+│   │   ├── simple_demo/       # Basic replication demo
+│   │   └── replication_demo/  # Comprehensive demo
+│   ├── bin/             # Compiled binaries
+│   ├── .golangci.yml    # Linter configuration (25+ rules)
+│   └── replication_test.go    # Test suite (6 test cases)
 ├── docker-compose.yml    # Container orchestration
-├── Makefile             # Development automation
+├── Makefile             # Development automation (40+ commands)
 ├── codecov.yml          # Coverage configuration
+├── primary/             # PostgreSQL primary config
+├── standby/             # PostgreSQL standby config
+├── scripts/             # Setup scripts
 └── *.md                 # Documentation
+```
+
+### 🚀 Quick Start
+
+```bash
+# 1. Clone and setup
+git clone <repository>
+cd postgresql-replication
+
+# 2. Start Docker development environment
+make docker-dev
+
+# 3. Run all tests
+make docker-test
+
+# 4. Check code quality  
+make docker-ci
 ```
 
 ## Further reading
