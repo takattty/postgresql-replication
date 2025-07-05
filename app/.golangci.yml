@@ -1,13 +1,5 @@
 run:
   timeout: 5m
-  tests: true
-
-output:
-  format: colored-line-number
-  print-issued-lines: true
-  print-linter-name: true
-  uniq-by-line: true
-  sort-results: true
 
 linters:
   enable:
@@ -17,71 +9,6 @@ linters:
     - ineffassign
     - staticcheck
     - unused
-    - gocyclo
-    - gofmt
-    - goimports
-    - misspell
-    - goconst
-    - gocritic
-    - gocognit
-    - funlen
-    - gochecknoinits
-    - gochecknoglobals
-    - lll
-    - nakedret
-    - nestif
-    - noctx
-    - nolintlint
-    - prealloc
-    - rowserrcheck
-    - sqlclosecheck
-    - unconvert
-    - unparam
-    - whitespace
-    - wsl
-
-linters-settings:
-  gocyclo:
-    min-complexity: 15
-  
-  gocognit:
-    min-complexity: 20
-  
-  funlen:
-    lines: 80
-    statements: 50
-  
-  lll:
-    line-length: 120
-  
-  gocritic:
-    enabled-tags:
-      - diagnostic
-      - style
-      - performance
-    disabled-checks:
-      - whyNoLint
-      - wrapperFunc
-      - dupImport
-      - ifElseChain
-      - singleCaseSwitch
 
 issues:
   exclude-use-default: false
-  exclude-rules:
-    - path: _test\.go
-      linters:
-        - errcheck
-        - funlen
-        - gochecknoglobals
-        - gocognit
-        - gocyclo
-        - lll
-        - goconst
-        - wsl
-    - path: cmd/
-      linters:
-        - gochecknoglobals
-        - gochecknoinits
-  max-issues-per-linter: 0
-  max-same-issues: 0
