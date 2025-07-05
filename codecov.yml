@@ -1,0 +1,58 @@
+codecov:
+  require_ci_to_pass: yes
+  notify:
+    wait_for_ci: yes
+
+coverage:
+  precision: 2
+  round: down
+  range: "70...100"
+  
+  status:
+    project:
+      default:
+        target: 80%
+        threshold: 5%
+        if_not_found: success
+        if_ci_failed: error
+        only_pulls: false
+    patch:
+      default:
+        target: 75%
+        threshold: 10%
+        if_not_found: success
+        if_ci_failed: error
+        only_pulls: false
+
+parsers:
+  gcov:
+    branch_detection:
+      conditional: yes
+      loop: yes
+      method: no
+      macro: no
+
+comment:
+  layout: "reach,diff,flags,tree"
+  behavior: default
+  require_changes: false
+  require_base: no
+  require_head: yes
+  branches:
+    - main
+    - develop
+
+ignore:
+  - "**/*_test.go"
+  - "**/testdata/**"
+  - "**/cmd/**"
+  - "**/bin/**"
+  - "**/.golangci.yml"
+  - "**/go.mod"
+  - "**/go.sum"
+
+flags:
+  unittests:
+    paths:
+      - app/
+    carryforward: true

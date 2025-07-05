@@ -1,0 +1,156 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres-primary:
+        image: postgres:14
+        env:
+          POSTGRES_DB: testdb
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: password
+          POSTGRES_REPLICATION_USER: replicator
+          POSTGRES_REPLICATION_PASSWORD: repl_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      
+      postgres-standby:
+        image: postgres:14
+        env:
+          POSTGRES_DB: testdb
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: password
+          POSTGRES_REPLICATION_USER: replicator
+          POSTGRES_REPLICATION_PASSWORD: repl_password
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.23'
+    
+    - name: Cache Go modules
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/go/pkg/mod
+          ~/.cache/go-build
+        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
+    
+    - name: Install dependencies
+      run: |
+        cd app
+        go mod download
+        go mod verify
+    
+    - name: Setup PostgreSQL for replication
+      run: |
+        # プライマリサーバーの設定
+        docker exec $(docker ps -q --filter "expose=5432/tcp") psql -U postgres -d testdb -c "
+          CREATE USER replicator WITH REPLICATION ENCRYPTED PASSWORD 'repl_password';
+          CREATE TABLE IF NOT EXISTS test_replication (
+            id SERIAL PRIMARY KEY,
+            data TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+          );
+          INSERT INTO test_replication (data) VALUES ('Initial test data');
+        "
+        
+        # スタンバイサーバーの設定（基本的なレプリケーション設定）
+        docker exec $(docker ps -q --filter "expose=5433/tcp") psql -U postgres -d testdb -c "
+          CREATE TABLE IF NOT EXISTS test_replication (
+            id SERIAL PRIMARY KEY,
+            data TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+          );
+        "
+    
+    - name: Run tests
+      run: |
+        cd app
+        go test -v -race -coverprofile=coverage.out ./...
+      env:
+        POSTGRES_DB: testdb
+        POSTGRES_USER: postgres
+        POSTGRES_PASSWORD: password
+        POSTGRES_REPLICATION_USER: replicator
+        POSTGRES_REPLICATION_PASSWORD: repl_password
+    
+    - name: Run go vet
+      run: |
+        cd app
+        go vet ./...
+    
+    - name: Test build
+      run: |
+        cd app
+        go build -v ./cmd/...
+    
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v4
+      with:
+        file: ./app/coverage.out
+        flags: unittests
+        name: codecov-umbrella
+        fail_ci_if_error: false
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.23'
+    
+    - name: Run golangci-lint
+      uses: golangci/golangci-lint-action@v6
+      with:
+        version: latest
+        working-directory: app
+        args: --timeout=5m
+
+  security:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.23'
+    
+    - name: Run gosec
+      uses: securecodewarrior/github-action-gosec@master
+      with:
+        args: '-fmt sarif -out gosec.sarif ./app/...'
+    
+    - name: Upload gosec results
+      uses: github/codeql-action/upload-sarif@v3
+      with:
+        sarif_file: gosec.sarif

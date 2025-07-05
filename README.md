@@ -1,5 +1,10 @@
 # PostgreSQL Streaming Replication Demo
 
+[![CI](https://github.com/takattty/postgresql-replication/actions/workflows/ci.yml/badge.svg)](https://github.com/takattty/postgresql-replication/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/takattty/postgresql-replication/branch/main/graph/badge.svg)](https://codecov.io/gh/takattty/postgresql-replication)
+[![Go Report Card](https://goreportcard.com/badge/github.com/takattty/postgresql-replication)](https://goreportcard.com/report/github.com/takattty/postgresql-replication)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 This repository contains a Docker Compose setup for learning how PostgreSQL streaming replication works. The environment runs a primary server, a standby server initialised by `pg_basebackup` and a pgAdmin instance for administration.  It also includes a small Go application that demonstrates read/write splitting and provides basic tests.
 
 ## Directory overview
@@ -48,7 +53,28 @@ pgAdmin will be available on <http://localhost:8080> (credentials are defined in
 
 Inside `app/` you will find a simple program that writes data to the primary server using `docker exec` and reads from the standby using a direct connection. The code also includes a test suite.
 
-Run the tests with:
+### Using Make (Recommended)
+
+```bash
+# Setup development environment
+make setup
+
+# Run all tests
+make test
+
+# Run tests with coverage
+make test-coverage
+
+# Run specific applications
+make run-connection-check
+make run-simple-demo
+make run-replication-demo
+
+# See all available commands
+make help
+```
+
+### Manual commands
 
 ```bash
 cd app
@@ -59,6 +85,40 @@ go test -v
 ## Security notes
 
 This project is for demonstration purposes. Default passwords are provided only for convenience – **always** change them in your `.env` file. In production you should further restrict network access and consider enabling SSL/TLS as outlined in `SECURITY.md`.
+
+## Development
+
+### Code Quality
+
+This project includes automated code quality checks:
+
+- **Linting**: `golangci-lint` with comprehensive rules
+- **Security**: `gosec` for security vulnerability scanning
+- **Testing**: Comprehensive test suite with coverage reporting
+- **Formatting**: `go fmt` for consistent code style
+
+### CI/CD
+
+The project uses GitHub Actions for:
+- Running tests on multiple Go versions
+- Code quality checks (linting, security scanning)
+- Coverage reporting via Codecov
+- Build verification
+
+### Project Structure
+
+```
+.
+├── .github/workflows/    # GitHub Actions CI/CD
+├── app/                  # Go application
+│   ├── cmd/             # Command-line applications
+│   ├── .golangci.yml    # Linter configuration
+│   └── replication_test.go
+├── docker-compose.yml    # Container orchestration
+├── Makefile             # Development automation
+├── codecov.yml          # Coverage configuration
+└── *.md                 # Documentation
+```
 
 ## Further reading
 
