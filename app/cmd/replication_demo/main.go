@@ -44,6 +44,11 @@ func NewReplicationDatabase() (*ReplicationDatabase, error) {
 	standbyHost := getEnv("POSTGRES_STANDBY_HOST", "localhost")
 	standbyPort := getEnv("POSTGRES_STANDBY_PORT", "5433")
 	
+	// IPv4を強制するためにlocalhostを2127.0.0.1に変換
+	if standbyHost == "localhost" {
+		standbyHost = "127.0.0.1"
+	}
+	
 	standbyConnStr := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
 		standbyHost, standbyPort, dbUser, dbPassword, dbName)
 	standbyDB, err := sql.Open("postgres", standbyConnStr)

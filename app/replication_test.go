@@ -44,6 +44,11 @@ func NewTestDatabaseManager() (*TestDatabaseManager, error) {
 	standbyHost := getEnv("POSTGRES_STANDBY_HOST", "localhost")
 	standbyPort := getEnv("POSTGRES_STANDBY_PORT", "5433")
 	
+	// IPv4を強制するためにlocalhostを127.0.0.1に変換
+	if standbyHost == "localhost" {
+		standbyHost = "127.0.0.1"
+	}
+	
 	standbyConnStr := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable connect_timeout=10",
 		standbyHost, standbyPort, dbUser, dbPassword, dbName)
 	standbyDB, err := sql.Open("postgres", standbyConnStr)
@@ -83,6 +88,11 @@ func (tm *TestDatabaseManager) writeToPrimaryDirect(dataText string) (bool, int)
 	dbName := getEnv("POSTGRES_DB", "testdb")
 	primaryHost := getEnv("POSTGRES_PRIMARY_HOST", "localhost")
 	primaryPort := getEnv("POSTGRES_PRIMARY_PORT", "5432")
+	
+	// IPv4を強制するためにlocalhostを127.0.0.1に変換
+	if primaryHost == "localhost" {
+		primaryHost = "127.0.0.1"
+	}
 	
 	connStr := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
 		primaryHost, primaryPort, dbUser, dbPassword, dbName)
@@ -168,6 +178,11 @@ func (tm *TestDatabaseManager) getReplicationStatusDirect() (float64, error) {
 	primaryHost := getEnv("POSTGRES_PRIMARY_HOST", "localhost")
 	primaryPort := getEnv("POSTGRES_PRIMARY_PORT", "5432")
 	
+	// IPv4を強制するためにlocalhostを2127.0.0.1に変換
+	if primaryHost == "localhost" {
+		primaryHost = "127.0.0.1"
+	}
+	
 	connStr := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
 		primaryHost, primaryPort, dbUser, dbPassword, dbName)
 	
@@ -238,6 +253,11 @@ func (tm *TestDatabaseManager) testPrimaryConnectionDirect() bool {
 	dbName := getEnv("POSTGRES_DB", "testdb")
 	primaryHost := getEnv("POSTGRES_PRIMARY_HOST", "localhost")
 	primaryPort := getEnv("POSTGRES_PRIMARY_PORT", "5432")
+	
+	// IPv4を強制するためにlocalhostを2127.0.0.1に変換
+	if primaryHost == "localhost" {
+		primaryHost = "127.0.0.1"
+	}
 	
 	connStr := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
 		primaryHost, primaryPort, dbUser, dbPassword, dbName)

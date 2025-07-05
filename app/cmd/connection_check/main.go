@@ -95,6 +95,14 @@ func main() {
 	primaryPort, _ := strconv.Atoi(getEnv("POSTGRES_PRIMARY_PORT", "5432"))
 	standbyHost := getEnv("POSTGRES_STANDBY_HOST", "localhost")
 	standbyPort, _ := strconv.Atoi(getEnv("POSTGRES_STANDBY_PORT", "5433"))
+	
+	// IPv4を強制するためにlocalhostを2127.0.0.1に変換
+	if primaryHost == "localhost" {
+		primaryHost = "127.0.0.1"
+	}
+	if standbyHost == "localhost" {
+		standbyHost = "127.0.0.1"
+	}
 
 	// プライマリサーバーテスト
 	primaryOK := testConnection(primaryHost, primaryPort, "プライマリサーバー")
