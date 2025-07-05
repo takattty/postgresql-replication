@@ -31,14 +31,23 @@ func simpleDemo() {
 	dbPassword := getEnv("POSTGRES_PASSWORD", "password")
 	dbName := getEnv("POSTGRES_DB", "testdb")
 
-	standbyConnStr := fmt.Sprintf("host=localhost port=5433 user=%s password=%s dbname=%s sslmode=disable",
-		dbUser, dbPassword, dbName)
+	// Docker環境では異なるホスト名とポートを使用
+	standbyHost := getEnv("POSTGRES_STANDBY_HOST", "localhost")
+	standbyPort := getEnv("POSTGRES_STANDBY_PORT", "5433")
+	
+	// IPv4を強制するためにlocalhostを2127.0.0.1に変換
+	if standbyHost == "localhost" {
+		standbyHost = "127.0.0.1"
+	}
+	
+	standbyConnStr := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
+		standbyHost, standbyPort, dbUser, dbPassword, dbName)
 	standbyDB, err := sql.Open("postgres", standbyConnStr)
 	if err != nil {
 		fmt.Printf("❌ スタンバイ接続エラー: %v\n", err)
 		return
 	}
-	defer standbyDB.Close()
+	defer func() { _ = standbyDB.Close() }()
 
 	// 読み取り前のデータ件数確認
 	var countBefore int
@@ -55,7 +64,7 @@ func simpleDemo() {
 		fmt.Printf("❌ データ取得エラー: %v\n", err)
 		return
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	fmt.Println("   最新データ:")
 	for rows.Next() {

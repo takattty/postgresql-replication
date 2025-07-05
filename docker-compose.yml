@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # プライマリサーバー
   postgres-primary:
@@ -82,9 +80,38 @@ services:
       - postgres-primary
       - postgres-standby
 
+  # Go開発環境
+  go-dev:
+    image: golang:1.23-alpine
+    container_name: go-dev
+    working_dir: /workspace
+    volumes:
+      - ./app:/workspace
+      - go-cache:/go/pkg/mod
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-testdb}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      POSTGRES_REPLICATION_USER: ${POSTGRES_REPLICATION_USER:-replicator}
+      POSTGRES_REPLICATION_PASSWORD: ${POSTGRES_REPLICATION_PASSWORD:-repl_password}
+      # Docker環境用のDB接続設定
+      POSTGRES_PRIMARY_HOST: postgres-primary
+      POSTGRES_PRIMARY_PORT: 5432
+      POSTGRES_STANDBY_HOST: postgres-standby
+      POSTGRES_STANDBY_PORT: 5432
+    networks:
+      - postgres-net
+    depends_on:
+      postgres-primary:
+        condition: service_healthy
+      postgres-standby:
+        condition: service_healthy
+    command: tail -f /dev/null  # コンテナを起動状態に保持
+
 volumes:
   primary_data:
   standby_data:
+  go-cache:
 
 networks:
   postgres-net:
