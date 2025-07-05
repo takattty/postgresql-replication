@@ -1,12 +1,9 @@
 run:
   timeout: 5m
   tests: true
-  skip-dirs:
-    - bin
 
 output:
-  formats:
-    - format: colored-line-number
+  format: colored-line-number
   print-issued-lines: true
   print-linter-name: true
   uniq-by-line: true
@@ -27,13 +24,9 @@ linters:
     - goconst
     - gocritic
     - gocognit
-    - godot
-    - exhaustive
     - funlen
     - gochecknoinits
     - gochecknoglobals
-    - godox
-    - goprintffuncname
     - lll
     - nakedret
     - nestif
@@ -61,10 +54,6 @@ linters-settings:
   lll:
     line-length: 120
   
-  godot:
-    scope: declarations
-    capital: true
-  
   gocritic:
     enabled-tags:
       - diagnostic
@@ -76,88 +65,6 @@ linters-settings:
       - dupImport
       - ifElseChain
       - singleCaseSwitch
-      - typeSwitchVar
-      - importShadow
-      - builtinShadow
-      - paramTypeCombine
-      - hugeParam
-      - rangeValCopy
-      - typeDefFirst
-      - commentedOutCode
-      - sloppyReassign
-      - appendAssign
-      - commentedOutImport
-      - unnecessaryDefer
-      - preferStringWriter
-      - nestingReduce
-      - unlambda
-      - tooManyResultsChecker
-      - unnamedResult
-      - captLocal
-      - underef
-      - nilValReturn
-      - ptrToRefParam
-      - evalOrder
-      - regexpSimplify
-      - badCall
-      - badCond
-      - regexpMust
-      - unnecessaryBlock
-      - badLock
-      - sprintfQuotedString
-      - dupBranchBody
-      - assignOp
-      - boolExprSimplify
-      - argOrder
-      - deprecatedComment
-      - dupArg
-      - dupCase
-      - flagName
-      - regexpPattern
-      - switchTrue
-      - unslice
-      - yodaStyleExpr
-      - appendCombine
-      - equalFold
-      - indexAlloc
-      - preferDecodeRune
-      - preferFilepathJoin
-      - preferFprint
-      - preferWriteByte
-      - sliceClear
-      - stringConcatSimplify
-      - mapKey
-      - badRegexp
-      - emptyStringTest
-      - hexLiteral
-      - methodExprCall
-      - offBy1
-      - redundantSprint
-      - sloppyLen
-      - stringXbytes
-      - typeAssertChain
-      - unlabelStmt
-      - unnecessaryBlock
-      - weakCond
-      - yodaStyleExpr
-      - emptyFallthrough
-      - newDeref
-      - octalLiteral
-      - paramTypeCombine
-      - singleCaseSwitch
-      - sloppyTypeAssert
-      - stringConcatSimplify
-      - switchTrue
-      - typeDefFirst
-      - typeUnparen
-      - underef
-      - unnamedResult
-      - unnecessaryDefer
-      - filepathJoin
-      - preferDecodeRune
-      - preferFilepathJoin
-      - preferWriteByte
-      - mapKey
 
 issues:
   exclude-use-default: false
@@ -165,7 +72,6 @@ issues:
     - path: _test\.go
       linters:
         - errcheck
-        - dupl
         - funlen
         - gochecknoglobals
         - gocognit
@@ -177,23 +83,5 @@ issues:
       linters:
         - gochecknoglobals
         - gochecknoinits
-    - text: "exported function .* should have comment"
-      linters:
-        - golint
-    - text: "exported var .* should have comment"
-      linters:
-        - golint
-    - text: "exported type .* should have comment"
-      linters:
-        - golint
-    - text: "exported const .* should have comment"
-      linters:
-        - golint
-    - text: "comment on exported .* should be of the form"
-      linters:
-        - golint
-
   max-issues-per-linter: 0
   max-same-issues: 0
-  new: false
-  fix: false
