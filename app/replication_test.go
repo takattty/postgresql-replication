@@ -49,7 +49,7 @@ func NewTestDatabaseManager() (*TestDatabaseManager, error) {
 
 	err = standbyDB.Ping()
 	if err != nil {
-		standbyDB.Close()
+		_ = standbyDB.Close()
 		return nil, fmt.Errorf("スタンバイDB ping エラー: %v", err)
 	}
 
@@ -59,7 +59,7 @@ func NewTestDatabaseManager() (*TestDatabaseManager, error) {
 // Close データベース接続を閉じる
 func (tm *TestDatabaseManager) Close() {
 	if tm.StandbyDB != nil {
-		tm.StandbyDB.Close()
+		_ = tm.StandbyDB.Close()
 	}
 }
 
@@ -91,7 +91,7 @@ func (tm *TestDatabaseManager) ReadFromStandby(limit int) ([]TestReplicationData
 	if err != nil {
 		return nil, fmt.Errorf("データ読み取りエラー: %v", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var results []TestReplicationData
 	for rows.Next() {
@@ -150,11 +150,7 @@ func (tm *TestDatabaseManager) TestConnection() bool {
 	cmd := exec.Command("docker", "exec", "postgres-primary",
 		"psql", "-U", "postgres", "-d", "testdb", "-t", "-c", "SELECT version();")
 	_, err = cmd.CombinedOutput()
-	if err != nil {
-		return false
-	}
-
-	return true
+	return err == nil
 }
 
 // TestDatabaseConnection データベース接続テスト

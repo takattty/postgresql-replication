@@ -37,7 +37,11 @@ func testConnection(host string, port int, description string) bool {
 		fmt.Printf("   ❌ 接続失敗: %v\n", err)
 		return false
 	}
-	defer db.Close()
+	defer func() {
+		if closeErr := db.Close(); closeErr != nil {
+			fmt.Printf("   ⚠️ DB接続クローズエラー: %v\n", closeErr)
+		}
+	}()
 
 	// 接続テスト
 	err = db.Ping()

@@ -49,7 +49,7 @@ func NewReplicationDatabase() (*ReplicationDatabase, error) {
 
 	err = standbyDB.Ping()
 	if err != nil {
-		standbyDB.Close()
+		_ = standbyDB.Close()
 		return nil, fmt.Errorf("スタンバイDB ping エラー: %v", err)
 	}
 
@@ -65,7 +65,7 @@ func NewReplicationDatabase() (*ReplicationDatabase, error) {
 // Close データベース接続を閉じる
 func (r *ReplicationDatabase) Close() {
 	if r.StandbyDB != nil {
-		r.StandbyDB.Close()
+		_ = r.StandbyDB.Close()
 	}
 }
 
@@ -105,7 +105,7 @@ func (r *ReplicationDatabase) ReadFromStandby(limit int) ([]ReplicationData, err
 	if err != nil {
 		return nil, fmt.Errorf("データ読み取りエラー: %v", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var results []ReplicationData
 	for rows.Next() {

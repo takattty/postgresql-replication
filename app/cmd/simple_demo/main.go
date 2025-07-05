@@ -38,7 +38,7 @@ func simpleDemo() {
 		fmt.Printf("❌ スタンバイ接続エラー: %v\n", err)
 		return
 	}
-	defer standbyDB.Close()
+	defer func() { _ = standbyDB.Close() }()
 
 	// 読み取り前のデータ件数確認
 	var countBefore int
@@ -55,7 +55,7 @@ func simpleDemo() {
 		fmt.Printf("❌ データ取得エラー: %v\n", err)
 		return
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	fmt.Println("   最新データ:")
 	for rows.Next() {
