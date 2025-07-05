@@ -39,9 +39,13 @@ func NewTestDatabaseManager() (*TestDatabaseManager, error) {
 	dbUser := getEnv("POSTGRES_USER", "postgres")
 	dbPassword := getEnv("POSTGRES_PASSWORD", "password")
 	dbName := getEnv("POSTGRES_DB", "testdb")
+
+	// Docker環境では異なるホスト名とポートを使用
+	standbyHost := getEnv("POSTGRES_STANDBY_HOST", "localhost")
+	standbyPort := getEnv("POSTGRES_STANDBY_PORT", "5433")
 	
-	standbyConnStr := fmt.Sprintf("host=localhost port=5433 user=%s password=%s dbname=%s sslmode=disable connect_timeout=10",
-		dbUser, dbPassword, dbName)
+	standbyConnStr := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable connect_timeout=10",
+		standbyHost, standbyPort, dbUser, dbPassword, dbName)
 	standbyDB, err := sql.Open("postgres", standbyConnStr)
 	if err != nil {
 		return nil, fmt.Errorf("スタンバイDB接続エラー: %v", err)
@@ -65,6 +69,40 @@ func (tm *TestDatabaseManager) Close() {
 
 // WriteToPrimary プライマリサーバーにデータを書き込み
 func (tm *TestDatabaseManager) WriteToPrimary(dataText string) (bool, int) {
+	// Docker環境では直接DB接続、ローカル環境ではdocker exec
+	if os.Getenv("POSTGRES_PRIMARY_HOST") != "" {
+		return tm.writeToPrimaryDirect(dataText)
+	}
+	return tm.writeToPrimaryDocker(dataText)
+}
+
+// writeToPrimaryDirect 直接DB接続でプライマリに書き込み
+func (tm *TestDatabaseManager) writeToPrimaryDirect(dataText string) (bool, int) {
+	dbUser := getEnv("POSTGRES_USER", "postgres")
+	dbPassword := getEnv("POSTGRES_PASSWORD", "password")
+	dbName := getEnv("POSTGRES_DB", "testdb")
+	primaryHost := getEnv("POSTGRES_PRIMARY_HOST", "localhost")
+	primaryPort := getEnv("POSTGRES_PRIMARY_PORT", "5432")
+	
+	connStr := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
+		primaryHost, primaryPort, dbUser, dbPassword, dbName)
+	
+	db, err := sql.Open("postgres", connStr)
+	if err != nil {
+		return false, 0
+	}
+	defer func() { _ = db.Close() }()
+	
+	var id int
+	err = db.QueryRow("INSERT INTO test_replication (data) VALUES ($1) RETURNING id", dataText).Scan(&id)
+	if err != nil {
+		return false, 0
+	}
+	return true, id
+}
+
+// writeToPrimaryDocker docker exec経由でプライマリに書き込み
+func (tm *TestDatabaseManager) writeToPrimaryDocker(dataText string) (bool, int) {
 	cmd := exec.Command("docker", "exec", "postgres-primary",
 		"psql", "-U", "postgres", "-d", "testdb",
 		"-c", fmt.Sprintf("INSERT INTO test_replication (data) VALUES ('%s') RETURNING id;", dataText))
@@ -115,6 +153,46 @@ func (tm *TestDatabaseManager) GetDataCount() (int, error) {
 
 // GetReplicationStatus レプリケーション遅延を取得
 func (tm *TestDatabaseManager) GetReplicationStatus() (float64, error) {
+	// Docker環境では直接DB接続、ローカル環境ではdocker exec
+	if os.Getenv("POSTGRES_PRIMARY_HOST") != "" {
+		return tm.getReplicationStatusDirect()
+	}
+	return tm.getReplicationStatusDocker()
+}
+
+// getReplicationStatusDirect 直接DB接続でレプリケーション状態を取得
+func (tm *TestDatabaseManager) getReplicationStatusDirect() (float64, error) {
+	dbUser := getEnv("POSTGRES_USER", "postgres")
+	dbPassword := getEnv("POSTGRES_PASSWORD", "password")
+	dbName := getEnv("POSTGRES_DB", "testdb")
+	primaryHost := getEnv("POSTGRES_PRIMARY_HOST", "localhost")
+	primaryPort := getEnv("POSTGRES_PRIMARY_PORT", "5432")
+	
+	connStr := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
+		primaryHost, primaryPort, dbUser, dbPassword, dbName)
+	
+	db, err := sql.Open("postgres", connStr)
+	if err != nil {
+		return -1, fmt.Errorf("プライマリDB接続エラー: %v", err)
+	}
+	defer func() { _ = db.Close() }()
+	
+	var lag sql.NullFloat64
+	query := `SELECT COALESCE(EXTRACT(EPOCH FROM (now() - pg_last_xact_replay_timestamp())), 0) FROM pg_stat_replication WHERE state = 'streaming' LIMIT 1`
+	err = db.QueryRow(query).Scan(&lag)
+	if err != nil {
+		// レプリケーションが接続されていない場合
+		return 0, nil
+	}
+	
+	if lag.Valid {
+		return lag.Float64, nil
+	}
+	return 0, nil
+}
+
+// getReplicationStatusDocker docker exec経由でレプリケーション状態を取得
+func (tm *TestDatabaseManager) getReplicationStatusDocker() (float64, error) {
 	cmd := exec.Command("docker", "exec", "postgres-primary",
 		"psql", "-U", "postgres", "-d", "testdb", "-t",
 		"-c", `SELECT COALESCE(EXTRACT(EPOCH FROM (now() - pg_last_xact_replay_timestamp())), 0) FROM pg_stat_replication WHERE state = 'streaming' LIMIT 1;`)
@@ -147,9 +225,39 @@ func (tm *TestDatabaseManager) TestConnection() bool {
 	}
 
 	// プライマリ接続テスト
+	if os.Getenv("POSTGRES_PRIMARY_HOST") != "" {
+		return tm.testPrimaryConnectionDirect()
+	}
+	return tm.testPrimaryConnectionDocker()
+}
+
+// testPrimaryConnectionDirect 直接DB接続でプライマリをテスト
+func (tm *TestDatabaseManager) testPrimaryConnectionDirect() bool {
+	dbUser := getEnv("POSTGRES_USER", "postgres")
+	dbPassword := getEnv("POSTGRES_PASSWORD", "password")
+	dbName := getEnv("POSTGRES_DB", "testdb")
+	primaryHost := getEnv("POSTGRES_PRIMARY_HOST", "localhost")
+	primaryPort := getEnv("POSTGRES_PRIMARY_PORT", "5432")
+	
+	connStr := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
+		primaryHost, primaryPort, dbUser, dbPassword, dbName)
+	
+	db, err := sql.Open("postgres", connStr)
+	if err != nil {
+		return false
+	}
+	defer func() { _ = db.Close() }()
+	
+	var version string
+	err = db.QueryRow("SELECT version()").Scan(&version)
+	return err == nil
+}
+
+// testPrimaryConnectionDocker docker exec経由でプライマリをテスト
+func (tm *TestDatabaseManager) testPrimaryConnectionDocker() bool {
 	cmd := exec.Command("docker", "exec", "postgres-primary",
 		"psql", "-U", "postgres", "-d", "testdb", "-t", "-c", "SELECT version();")
-	_, err = cmd.CombinedOutput()
+	_, err := cmd.CombinedOutput()
 	return err == nil
 }
 
@@ -254,7 +362,7 @@ func TestReadWriteSeparation(t *testing.T) {
 		t.Fatalf("読み取り処理に失敗: %v", err)
 	}
 
-	t.Logf("✅ 読み書き分離テスト成功: 書き込み=%.3f秒, 読み取り=%.3f秒", 
+	t.Logf("✅ 読み書き分離テスト成功: 書き込み=%.3f秒, 読み取り=%.3f秒",
 		writeTime.Seconds(), readTime.Seconds())
 }
 

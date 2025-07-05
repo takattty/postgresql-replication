@@ -31,8 +31,12 @@ func simpleDemo() {
 	dbPassword := getEnv("POSTGRES_PASSWORD", "password")
 	dbName := getEnv("POSTGRES_DB", "testdb")
 
-	standbyConnStr := fmt.Sprintf("host=localhost port=5433 user=%s password=%s dbname=%s sslmode=disable",
-		dbUser, dbPassword, dbName)
+	// Docker環境では異なるホスト名とポートを使用
+	standbyHost := getEnv("POSTGRES_STANDBY_HOST", "localhost")
+	standbyPort := getEnv("POSTGRES_STANDBY_PORT", "5433")
+	
+	standbyConnStr := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
+		standbyHost, standbyPort, dbUser, dbPassword, dbName)
 	standbyDB, err := sql.Open("postgres", standbyConnStr)
 	if err != nil {
 		fmt.Printf("❌ スタンバイ接続エラー: %v\n", err)

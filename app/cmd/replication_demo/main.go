@@ -39,9 +39,13 @@ func NewReplicationDatabase() (*ReplicationDatabase, error) {
 	dbUser := getEnv("POSTGRES_USER", "postgres")
 	dbPassword := getEnv("POSTGRES_PASSWORD", "password")
 	dbName := getEnv("POSTGRES_DB", "testdb")
+
+	// Docker環境では異なるホスト名とポートを使用
+	standbyHost := getEnv("POSTGRES_STANDBY_HOST", "localhost")
+	standbyPort := getEnv("POSTGRES_STANDBY_PORT", "5433")
 	
-	standbyConnStr := fmt.Sprintf("host=localhost port=5433 user=%s password=%s dbname=%s sslmode=disable",
-		dbUser, dbPassword, dbName)
+	standbyConnStr := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
+		standbyHost, standbyPort, dbUser, dbPassword, dbName)
 	standbyDB, err := sql.Open("postgres", standbyConnStr)
 	if err != nil {
 		return nil, fmt.Errorf("スタンバイDB接続エラー: %v", err)
@@ -255,7 +259,7 @@ func (rd *ReplicationDemo) RunBasicDemo() bool {
 
 // RunPerformanceTest パフォーマンステスト
 func (rd *ReplicationDemo) RunPerformanceTest(iterations int) {
-	fmt.Printf("\n"+strings.Repeat("=", 60)+"\n")
+	fmt.Printf("\n" + strings.Repeat("=", 60) + "\n")
 	fmt.Printf("⚡ パフォーマンステスト開始 (%d回)\n", iterations)
 	fmt.Println(strings.Repeat("=", 60))
 
@@ -314,7 +318,7 @@ func (rd *ReplicationDemo) RunPerformanceTest(iterations int) {
 
 // RunDataConsistencyCheck データ整合性チェック
 func (rd *ReplicationDemo) RunDataConsistencyCheck() bool {
-	fmt.Printf("\n"+strings.Repeat("=", 60)+"\n")
+	fmt.Printf("\n" + strings.Repeat("=", 60) + "\n")
 	fmt.Println("🔍 データ整合性チェック")
 	fmt.Println(strings.Repeat("=", 60))
 

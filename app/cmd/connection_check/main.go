@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 
 	_ "github.com/lib/pq"
@@ -28,7 +29,7 @@ func testConnection(host string, port int, description string) bool {
 	dbUser := getEnv("POSTGRES_USER", "postgres")
 	dbPassword := getEnv("POSTGRES_PASSWORD", "password")
 	dbName := getEnv("POSTGRES_DB", "testdb")
-	
+
 	connStr := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable connect_timeout=10",
 		host, port, dbUser, dbPassword, dbName)
 
@@ -89,12 +90,18 @@ func main() {
 	fmt.Println("🎯 PostgreSQL接続テスト")
 	fmt.Println(strings.Repeat("=", 50))
 
+	// 環境変数からホスト情報を取得
+	primaryHost := getEnv("POSTGRES_PRIMARY_HOST", "localhost")
+	primaryPort, _ := strconv.Atoi(getEnv("POSTGRES_PRIMARY_PORT", "5432"))
+	standbyHost := getEnv("POSTGRES_STANDBY_HOST", "localhost")
+	standbyPort, _ := strconv.Atoi(getEnv("POSTGRES_STANDBY_PORT", "5433"))
+
 	// プライマリサーバーテスト
-	primaryOK := testConnection("localhost", 5432, "プライマリサーバー")
+	primaryOK := testConnection(primaryHost, primaryPort, "プライマリサーバー")
 	fmt.Println()
 
 	// スタンバイサーバーテスト
-	standbyOK := testConnection("localhost", 5433, "スタンバイサーバー")
+	standbyOK := testConnection(standbyHost, standbyPort, "スタンバイサーバー")
 	fmt.Println()
 
 	// 結果サマリー
