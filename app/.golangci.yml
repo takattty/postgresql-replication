@@ -3,11 +3,10 @@ run:
   tests: true
   skip-dirs:
     - bin
-  skip-files:
-    - ".*_test.go"
 
 output:
-  format: colored-line-number
+  formats:
+    - format: colored-line-number
   print-issued-lines: true
   print-linter-name: true
   uniq-by-line: true
@@ -24,21 +23,16 @@ linters:
     - gocyclo
     - gofmt
     - goimports
-    - golint
-    - gosec
     - misspell
     - goconst
     - gocritic
     - gocognit
     - godot
-    - err113
     - exhaustive
-    - exportloopref
     - funlen
     - gochecknoinits
     - gochecknoglobals
     - godox
-    - gomnd
     - goprintffuncname
     - lll
     - nakedret
@@ -71,35 +65,11 @@ linters-settings:
     scope: declarations
     capital: true
   
-  gomnd:
-    settings:
-      mnd:
-        checks: argument,case,condition,operation,return,assign
-        ignored-numbers: 0,1,2,3,5,10,60,100,1000
-        ignored-functions: strconv.FormatInt,strconv.ParseInt,time.Sleep
-  
-  gosec:
-    severity: medium
-    confidence: medium
-    excludes:
-      - G101  # 潜在的なハードコードされたクレデンシャル
-      - G301  # ファイルパーミッション
-      - G302  # ファイルパーミッション
-      - G304  # ファイルパス
-    includes:
-      - G201  # SQLインジェクション
-      - G202  # SQLインジェクション
-      - G401  # 弱い暗号化
-      - G501  # 弱いハッシュ
-      - G601  # 暗黙的なメモリエイリアス
-  
   gocritic:
     enabled-tags:
       - diagnostic
       - style
       - performance
-      - experimental
-      - opinionated
     disabled-checks:
       - whyNoLint
       - wrapperFunc
@@ -138,7 +108,6 @@ linters-settings:
       - dupBranchBody
       - assignOp
       - boolExprSimplify
-      - regexpSimplify
       - argOrder
       - deprecatedComment
       - dupArg
@@ -146,7 +115,6 @@ linters-settings:
       - flagName
       - regexpPattern
       - switchTrue
-      - typeSwitchVar
       - unslice
       - yodaStyleExpr
       - appendCombine
@@ -158,32 +126,24 @@ linters-settings:
       - preferWriteByte
       - sliceClear
       - stringConcatSimplify
-      - preferStringWriter
       - mapKey
-      - preferDecodeRune
-      - preferFilepathJoin
       - badRegexp
       - emptyStringTest
       - hexLiteral
       - methodExprCall
       - offBy1
-      - preferDecodeRune
-      - preferFilepathJoin
       - redundantSprint
-      - regexpSimplify
       - sloppyLen
       - stringXbytes
       - typeAssertChain
       - unlabelStmt
       - unnecessaryBlock
       - weakCond
-      - wrapperFunc
       - yodaStyleExpr
       - emptyFallthrough
       - newDeref
       - octalLiteral
       - paramTypeCombine
-      - preferStringWriter
       - singleCaseSwitch
       - sloppyTypeAssert
       - stringConcatSimplify
@@ -194,65 +154,9 @@ linters-settings:
       - unnamedResult
       - unnecessaryDefer
       - filepathJoin
-      - sliceClear
       - preferDecodeRune
       - preferFilepathJoin
       - preferWriteByte
-      - stringConcatSimplify
-      - mapKey
-      - preferDecodeRune
-      - preferFilepathJoin
-      - filepathJoin
-      - sliceClear
-      - preferDecodeRune
-      - preferFilepathJoin
-      - preferWriteByte
-      - stringConcatSimplify
-      - mapKey
-      - preferDecodeRune
-      - preferFilepathJoin
-      - filepathJoin
-      - sliceClear
-      - preferDecodeRune
-      - preferFilepathJoin
-      - preferWriteByte
-      - stringConcatSimplify
-      - mapKey
-      - preferDecodeRune
-      - preferFilepathJoin
-      - filepathJoin
-      - sliceClear
-      - preferDecodeRune
-      - preferFilepathJoin
-      - preferWriteByte
-      - stringConcatSimplify
-      - mapKey
-      - preferDecodeRune
-      - preferFilepathJoin
-      - filepathJoin
-      - sliceClear
-      - preferDecodeRune
-      - preferFilepathJoin
-      - preferWriteByte
-      - stringConcatSimplify
-      - mapKey
-      - preferDecodeRune
-      - preferFilepathJoin
-      - filepathJoin
-      - sliceClear
-      - preferDecodeRune
-      - preferFilepathJoin
-      - preferWriteByte
-      - stringConcatSimplify
-      - mapKey
-      - preferDecodeRune
-      - preferFilepathJoin
-      - filepathJoin
-      - sliceClear
-      - preferDecodeRune
-      - preferFilepathJoin
-      - preferWriteByte
-      - stringConcatSimplify
       - mapKey
 
 issues:
@@ -261,36 +165,18 @@ issues:
     - path: _test\.go
       linters:
         - errcheck
-        - gosec
         - dupl
         - funlen
         - gochecknoglobals
         - gocognit
         - gocyclo
         - lll
-        - gomnd
         - goconst
         - wsl
     - path: cmd/
       linters:
         - gochecknoglobals
         - gochecknoinits
-        - gomnd
-    - text: "G101"
-      linters:
-        - gosec
-    - text: "G301"
-      linters:
-        - gosec
-    - text: "G302"
-      linters:
-        - gosec
-    - text: "G304"
-      linters:
-        - gosec
-    - text: "should not use dot imports"
-      linters:
-        - golint
     - text: "exported function .* should have comment"
       linters:
         - golint
@@ -306,51 +192,6 @@ issues:
     - text: "comment on exported .* should be of the form"
       linters:
         - golint
-    - text: "Use of weak random number generator"
-      linters:
-        - gosec
-    - text: "Subprocess launched with variable"
-      linters:
-        - gosec
-    - text: "Subprocess launched with function call as argument or cmd arguments"
-      linters:
-        - gosec
-    - text: "Errors unhandled"
-      linters:
-        - gosec
-    - text: "Potential hardcoded credentials"
-      linters:
-        - gosec
-    - text: "Potential file inclusion via variable"
-      linters:
-        - gosec
-    - text: "Implicit memory aliasing of items from a range statement"
-      linters:
-        - gosec
-    - text: "String formatting with unsanitized content"
-      linters:
-        - gosec
-    - text: "Use of weak cryptographic primitive"
-      linters:
-        - gosec
-    - text: "Use of weak hash function"
-      linters:
-        - gosec
-    - text: "Use of weak random number generator"
-      linters:
-        - gosec
-    - text: "Use of weak encryption algorithm"
-      linters:
-        - gosec
-    - text: "Use of weak hash function"
-      linters:
-        - gosec
-    - text: "Use of weak random number generator"
-      linters:
-        - gosec
-    - text: "Use of weak encryption algorithm"
-      linters:
-        - gosec
 
   max-issues-per-linter: 0
   max-same-issues: 0

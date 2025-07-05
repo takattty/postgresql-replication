@@ -57,7 +57,7 @@ jobs:
         path: |
           ~/go/pkg/mod
           ~/.cache/go-build
-        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        key: ${{ runner.os }}-go-${{ hashFiles('app/go.sum') }}
         restore-keys: |
           ${{ runner.os }}-go-
     
@@ -69,8 +69,11 @@ jobs:
     
     - name: Setup PostgreSQL for replication
       run: |
+        # Wait for PostgreSQL to be ready
+        sleep 10
+        
         # プライマリサーバーの設定
-        docker exec $(docker ps -q --filter "expose=5432/tcp") psql -U postgres -d testdb -c "
+        PGPASSWORD=password psql -h localhost -p 5432 -U postgres -d testdb -c "
           CREATE USER replicator WITH REPLICATION ENCRYPTED PASSWORD 'repl_password';
           CREATE TABLE IF NOT EXISTS test_replication (
             id SERIAL PRIMARY KEY,
@@ -80,8 +83,8 @@ jobs:
           INSERT INTO test_replication (data) VALUES ('Initial test data');
         "
         
-        # スタンバイサーバーの設定（基本的なレプリケーション設定）
-        docker exec $(docker ps -q --filter "expose=5433/tcp") psql -U postgres -d testdb -c "
+        # スタンバイサーバーの設定
+        PGPASSWORD=password psql -h localhost -p 5433 -U postgres -d testdb -c "
           CREATE TABLE IF NOT EXISTS test_replication (
             id SERIAL PRIMARY KEY,
             data TEXT NOT NULL,
@@ -146,11 +149,13 @@ jobs:
         go-version: '1.23'
     
     - name: Run gosec
-      uses: securecodewarrior/github-action-gosec@master
-      with:
-        args: '-fmt sarif -out gosec.sarif ./app/...'
+      run: |
+        go install github.com/securecodewarrior/gosec/v2/cmd/gosec@latest
+        cd app
+        gosec -fmt sarif -out gosec.sarif ./...
     
     - name: Upload gosec results
+      if: always()
       uses: github/codeql-action/upload-sarif@v3
       with:
-        sarif_file: gosec.sarif
+        sarif_file: app/gosec.sarif
