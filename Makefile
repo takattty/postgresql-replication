@@ -147,6 +147,59 @@ security:
 	@echo "🔐 Running security checks..."
 	cd $(APP_DIR) && gosec ./...
 
+# Docker環境での開発コマンド
+.PHONY: docker-dev
+docker-dev:
+	@echo "🐳 Starting Go development environment..."
+	$(DOCKER_COMPOSE) up -d go-dev
+
+.PHONY: docker-shell
+docker-shell:
+	@echo "🐚 Opening shell in Go development container..."
+	docker exec -it go-dev /bin/sh
+
+.PHONY: docker-test
+docker-test:
+	@echo "🧪 Running tests in Docker..."
+	docker exec go-dev go test -v ./...
+
+.PHONY: docker-lint-setup
+docker-lint-setup:
+	@echo "⚙️ Installing development tools in container..."
+	docker exec go-dev sh -c "apk add --no-cache curl git && \
+		curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b /usr/local/bin v1.64.8 && \
+		go install github.com/securecodewarrior/gosec/v2/cmd/gosec@v2.18.2 && \
+		ln -sf /go/bin/gosec /usr/local/bin/gosec"
+
+.PHONY: docker-lint
+docker-lint: docker-lint-setup
+	@echo "🔍 Running linter in Docker..."
+	docker exec go-dev golangci-lint run
+
+.PHONY: docker-security
+docker-security: docker-lint-setup
+	@echo "🔐 Running security checks in Docker..."
+	docker exec go-dev gosec ./...
+
+.PHONY: docker-fmt
+docker-fmt:
+	@echo "🎨 Formatting code in Docker..."
+	docker exec go-dev go fmt ./...
+
+.PHONY: docker-vet
+docker-vet:
+	@echo "🔍 Running go vet in Docker..."
+	docker exec go-dev go vet ./...
+
+.PHONY: docker-build
+docker-build:
+	@echo "🔨 Building in Docker..."
+	docker exec go-dev go build ./cmd/...
+
+.PHONY: docker-ci
+docker-ci: docker-fmt docker-vet docker-lint docker-security docker-test docker-build
+	@echo "🎉 Docker CI pipeline complete!"
+
 # 開発環境セットアップ
 .PHONY: setup
 setup:
@@ -204,4 +257,16 @@ help:
 	@echo "  make demo                - Run full demo flow"
 	@echo "  make security            - Run security checks"
 	@echo "  make ci                  - Run CI pipeline locally"
+	@echo ""
+	@echo "🐳 Docker Development:"
+	@echo "  make docker-dev          - Start Go development container"
+	@echo "  make docker-shell        - Open shell in Go container"
+	@echo "  make docker-test         - Run tests in Docker"
+	@echo "  make docker-lint         - Run linter in Docker"
+	@echo "  make docker-security     - Run security checks in Docker"
+	@echo "  make docker-fmt          - Format code in Docker"
+	@echo "  make docker-vet          - Run go vet in Docker"
+	@echo "  make docker-build        - Build in Docker"
+	@echo "  make docker-ci           - Run full CI pipeline in Docker"
+	@echo ""
 	@echo "  make help                - Show this help message"

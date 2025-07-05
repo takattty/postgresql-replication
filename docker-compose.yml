@@ -82,9 +82,33 @@ services:
       - postgres-primary
       - postgres-standby
 
+  # Go開発環境
+  go-dev:
+    image: golang:1.23-alpine
+    container_name: go-dev
+    working_dir: /workspace
+    volumes:
+      - ./app:/workspace
+      - go-cache:/go/pkg/mod
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-testdb}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      POSTGRES_REPLICATION_USER: ${POSTGRES_REPLICATION_USER:-replicator}
+      POSTGRES_REPLICATION_PASSWORD: ${POSTGRES_REPLICATION_PASSWORD:-repl_password}
+    networks:
+      - postgres-net
+    depends_on:
+      postgres-primary:
+        condition: service_healthy
+      postgres-standby:
+        condition: service_healthy
+    command: tail -f /dev/null  # コンテナを起動状態に保持
+
 volumes:
   primary_data:
   standby_data:
+  go-cache:
 
 networks:
   postgres-net:
